@@ -1,0 +1,22 @@
+{
+    "manifest_version": 3,
+    "name": "Helper",
+    "version": "1.0.0",
+    "description": "Helps in competitive coding",
+
+    "action": {
+    "default_popup": "src/popup/index.html"
+    },
+
+    "background": {
+    "service_worker": "background.js",
+    "type": "module"
+    },
+
+    "content_scripts": [
+    {
+        "matches": ["https://leetcode.com/*"],
+        "js": ["content.js"]
+    }
+    ]
+}
