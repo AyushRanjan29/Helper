@@ -1,1 +1,2 @@
+import "./background";
 console.log("Helper service worker started!");

@@ -1,0 +1,15 @@
+body {
+    margin: 0;
+    width: 500px;
+    min-width: 500px;
+}
+
+#root {
+    width: 100%;
+}
+
+.popup-container {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 20px;
+    }

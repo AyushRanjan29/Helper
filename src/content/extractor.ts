@@ -1,3 +1,5 @@
+import type { ProblemData } from "../shared/types";
+
 function cleanTitle(title: string): string {
     return title
     .replace(/\s*-\s*LeetCode\s*$/i, "")
@@ -109,16 +111,19 @@ function getConstraints(): string[] {
     .filter(Boolean);
 }
 
-export function extractProblem(): void {
-    const title = getTitle();
-    const difficulty = getDifficulty();
-    const description = getDescription();
-    const example = getExamples();
-    const constraints = getConstraints();
-    
-    console.log("Problem title:", title);
-    console.log("Difficulty:", difficulty);
-    console.log("Description:", description);
-    console.log("Example: ", example);
-    console.log("Constraints:", constraints);
-    }
+
+function getProblemData(): ProblemData {
+    return {
+    title: getTitle(),
+    difficulty: getDifficulty(),
+    description: getDescription(),
+    examples: getExamples(),
+    constraints: getConstraints(),
+    };
+}
+
+export function extractProblem(): ProblemData {
+    const problemData = getProblemData();
+    console.log("Problem Data:", problemData);
+    return problemData;
+}
