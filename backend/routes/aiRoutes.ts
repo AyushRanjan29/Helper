@@ -5,7 +5,13 @@ const router = Router();
 
 router.post("/chat", async (req, res) => {
   try {
-    const { problem, question } = req.body;
+    const { problem, messages, language, code } = req.body;
+    if (!language) {
+      return res.status(400).json({
+        success: false,
+        message: "Programming language is required.",
+      });
+    }
 
     if (!problem) {
       return res.status(400).json({
@@ -14,14 +20,14 @@ router.post("/chat", async (req, res) => {
       });
     }
 
-    if (!question || !question.trim()) {
+    if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "Question is required.",
+        message: "Conversation messages are required.",
       });
     }
 
-    const answer = await generateChatResponse(problem, question.trim());
+    const answer = await generateChatResponse(problem, language, code, messages);
 
     return res.json({
       success: true,

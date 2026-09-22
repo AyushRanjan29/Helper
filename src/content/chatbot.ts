@@ -1,9 +1,11 @@
-import type { ProblemData } from "../shared/types";
+import type { ProblemData, ChatMessage } from "../shared/types";
 import { marked } from "marked";
 import hljs from "highlight.js/lib/common";
 import chatbotStyles from "./chatbot.css?inline";
+import { getCurrentLanguage, getCurrentCode } from "./utils";
 
 let currentProblemData: ProblemData | null = null;
+let conversationHistory: ChatMessage[] = [];
 
 // ======================================================
 // CREATE CHATBOT
@@ -11,6 +13,7 @@ let currentProblemData: ProblemData | null = null;
 
 export function createHelperChatbot(problemData: ProblemData) {
   currentProblemData = problemData;
+  conversationHistory = [];
 
   // Prevent duplicate chatbot
   if (document.getElementById("helper-chatbot")) {
@@ -169,30 +172,41 @@ export function createHelperChatbot(problemData: ProblemData) {
   // SEND MESSAGE
   // ======================================================
 
-  async function sendMessage() {
-    const question = input.value.trim();
+async function sendMessage() {
+  const question = input.value.trim();
 
-    if (!question) {
-      return;
-    }
+  if (!question) {
+    return;
+  }
 
-    // Show user's message
-    addMessage(question, "user");
+  // Show user's message
+  addMessage(question, "user");
 
-    // Clear input
-    input.value = "";
+  // Save user message in conversation history
+  conversationHistory.push({
+    role: "user",
+    content: question,
+  });
 
-    resizeInput();
+  // Clear input
+  input.value = "";
 
-    // Disable input
-    sendButton.disabled = true;
-    input.disabled = true;
+  resizeInput();
 
-    // Show typing indicator
-    const typing = addTypingIndicator();
+  // Disable input
+  sendButton.disabled = true;
+  input.disabled = true;
 
-    try {
-      const response = await fetch("http://localhost:5000/api/ai/chat", {
+  // Show typing indicator
+  const typing = addTypingIndicator();
+
+  try {
+    console.log("Sending conversation:", conversationHistory);
+    const currentLanguage = getCurrentLanguage();
+    const currentCode = getCurrentCode();
+    const response = await fetch(
+      "http://localhost:5000/api/ai/chat",
+      {
         method: "POST",
 
         headers: {
@@ -201,38 +215,55 @@ export function createHelperChatbot(problemData: ProblemData) {
 
         body: JSON.stringify({
           problem: currentProblemData,
-          question: question,
+          messages: conversationHistory,
+          language: currentLanguage,
+          code: currentCode,
         }),
-      });
+      },
+    );
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Failed to get AI response.");
-      }
+    console.log("Backend response:", data);
 
-      // Remove typing indicator
-      typing.remove();
-
-      // Display AI response
-      addMessage(data.answer, "ai");
-    } catch (error) {
-      typing.remove();
-
-      console.error("Helper chat error:", error);
-
-      addMessage(
-        error instanceof Error ? error.message : "Something went wrong.",
-        "ai",
-        true,
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data.message || "Failed to get AI response.",
       );
-    } finally {
-      sendButton.disabled = false;
-      input.disabled = false;
-
-      input.focus();
     }
+
+    // Remove typing indicator
+    typing.remove();
+
+    // Save AI response
+    conversationHistory.push({
+      role: "assistant",
+      content: data.answer,
+    });
+
+    // Display AI response
+    addMessage(data.answer, "ai");
+
+  } catch (error) {
+    typing.remove();
+
+    console.error("Helper chat error:", error);
+
+    addMessage(
+      error instanceof Error
+        ? error.message
+        : "Something went wrong.",
+      "ai",
+      true,
+    );
+
+  } finally {
+    sendButton.disabled = false;
+    input.disabled = false;
+
+    input.focus();
   }
+}
 
   // ======================================================
   // SEND BUTTON
@@ -474,9 +505,9 @@ function latexToHtml(latex: string): string {
     .replace(/\\quad\b/g, "    ")
     .replace(/\\text\{([^{}]*)\}/g, "$1")
     .replace(
-    /\\fracmax\(\s*\\?text?maxLeftX,\s*\\?text?maxLeftY\s*\)\s*\+\s*min\(\s*\\?text?minRightX,\s*\\?text?minRightY\s*\)\s*2/g,
-    "(max(maxLeftX, maxLeftY) + min(minRightX, minRightY)) / 2",
-  );
+      /\\fracmax\(\s*\\?text?maxLeftX,\s*\\?text?maxLeftY\s*\)\s*\+\s*min\(\s*\\?text?minRightX,\s*\\?text?minRightY\s*\)\s*2/g,
+      "(max(maxLeftX, maxLeftY) + min(minRightX, minRightY)) / 2",
+    );
 
   // \frac{a}{b} -> a / b
   value = value.replace(/\\frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, "($1 / $2)");
@@ -646,9 +677,9 @@ function injectChatbotStyles() {
 
 export function updateHelperProblem(problemData: ProblemData) {
   currentProblemData = problemData;
+  conversationHistory = [];
 
-  const messages =
-    document.getElementById("helper-messages");
+  const messages = document.getElementById("helper-messages");
 
   if (!messages) {
     return;

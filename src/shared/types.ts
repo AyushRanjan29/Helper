@@ -5,3 +5,8 @@ export interface ProblemData {
     examples: string[];
     constraints: string[];
 }
+
+export interface ChatMessage {
+    role: "user" | "assistant";
+    content: string;
+}

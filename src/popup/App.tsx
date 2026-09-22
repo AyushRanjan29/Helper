@@ -47,9 +47,6 @@ function App() {
 
   return (
     <div className="popup-container">
-      <h1>{problem.title}</h1>
-
-      <p>Difficulty: {problem.difficulty}</p>
 
       <button onClick={handleGetHint} disabled={loading}>
         {loading ? "Thinking..." : "💡 Get Hint"}
@@ -62,20 +59,6 @@ function App() {
         </div>
       )}
 
-      <h2>Description</h2>
-      <p>{problem.description}</p>
-
-      <h2>Examples</h2>
-
-      {problem.examples.map((example, index) => (
-        <p key={index}>{example}</p>
-      ))}
-
-      <h2>Constraints</h2>
-
-      {problem.constraints.map((constraint, index) => (
-        <p key={index}>{constraint}</p>
-      ))}
     </div>
   );
 }

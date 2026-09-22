@@ -1,6 +1,11 @@
 import "dotenv/config";
 import { GoogleGenAI } from "@google/genai";
 
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
 console.log(
   "Gemini API key loaded:",
   process.env.GEMINI_API_KEY ? "YES" : "NO",
@@ -44,7 +49,9 @@ export async function generateChatResponse(
     examples: string[];
     constraints: string[];
   },
-  question: string,
+  language: string,
+  code: string,
+  messages: ChatMessage[],
 ): Promise<string> {
   const prompt = `
 You are helping a user solve a LeetCode problem.
@@ -67,33 +74,82 @@ Constraints:
 ${problem.constraints.join("\n")}
 
 
-USER QUESTION:
-${question}
+CONVERSATION:
+${messages
+  .map(
+    (message) =>
+      `${message.role === "user" ? "User" : "Helper"}: ${message.content}`,
+  )
+  .join("\n\n")}
 
 
 INSTRUCTIONS:
-- You are an expert LeetCode mentor.
+- Answer the user's latest question directly.
+- Use the current problem and conversation history as context.
+- Maintain continuity with previous messages.
+- Do not unnecessarily repeat previous explanations.
 
-Guidelines:
+INTENT HANDLING:
 
-- If the user asks for a hint, give only a hint.
-- If the user asks for an explanation, explain step by step.
-- If the user asks for the solution, provide:
-  1. Intuition
-  2. Approach
-  3. Algorithm
-  4. Time & Space Complexity
-  5. Well-formatted C++ code
-  6. Dry run on one example.
-  
-- Use Markdown formatting.
-- Use headings, bullet points, numbered lists and fenced code blocks.
-- Use the current problem as context.
-- Do not assume the user is asking for a hint unless they specifically ask for one.
-- If they ask for a hint, give a hint without giving the complete solution.
-- If they ask for an explanation, explain the concept clearly.
-- If they ask for code, you may provide code.
-- Keep the response focused on the current problem.
+1. HINT
+If the user asks for a hint:
+- Give only a useful hint.
+- Do not give the complete solution.
+- Do not provide code unless explicitly requested.
+
+2. EXPLANATION
+If the user asks to explain the problem, idea, approach, or concept:
+- Explain the intuition first.
+- Then explain the approach step by step.
+- Keep it focused on the current problem.
+
+3. SOLUTION
+If the user asks for the solution:
+- Give the intuition.
+- Give the approach.
+- Give the algorithm.
+- Give time and space complexity.
+- Give complete working code in the user's selected programming language.
+
+4. COMPLEXITY
+If the user asks about complexity:
+- State time complexity.
+- State space complexity.
+- Briefly explain why.
+
+5. DRY RUN
+If the user asks for a dry run or walkthrough:
+- Use the provided example when possible.
+- Show the important steps clearly.
+- Show how variables/data structures change.
+
+6. DEBUG
+If the user asks why their solution is wrong, crashes, or gets TLE:
+- Identify the likely issue.
+- Explain why it happens.
+- Suggest the correction.
+
+7. OPTIMIZE
+If the user asks to optimize:
+- Explain the current bottleneck.
+- Give the improved approach.
+- Compare the complexity.
+
+8. CODE
+If the user explicitly asks for code:
+- Provide code in the current programming language.
+- Do not switch languages.
+
+CURRENT PROGRAMMING LANGUAGE:
+${language}
+
+CURRENT USER CODE:
+${code}
+
+- Do not answer a different intent from the one the user requested.
+- Do not provide a full solution when the user asks only for a hint.
+- Do not provide code when the user asks only for an explanation.
+- Use concise responses for simple questions.
 `;
 
   const response = await ai.models.generateContent({
